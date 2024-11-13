@@ -1,6 +1,6 @@
 import MiguelImg from './assets/Miguel.png';
 import SarahImg from './assets/Sarah.svg';
-import JunhoImg from './assets/Junho.svg';
+import JunhoImg from './assets/junho.svg';
 
 export const Characters = [
     {
