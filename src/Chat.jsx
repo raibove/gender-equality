@@ -31,19 +31,22 @@ const RoleplayChat = ({ character = {
   avatar: "/api/placeholder/100/100",
   bgColor: "bg-sky-100",
 } }) => {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: 'character',
-      text: "Hi! I'm Emma, a teacher who loves books. How can I help you today?",
-      timestamp: new Date().toISOString()
-    }
-  ]);
-  const [newMessage, setNewMessage] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [newMessage, setNewMessage] = useState('Hi!');
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const chatContainerRef = useRef(null);
   const bottomRef = useRef(null);
+
+  const handleInitialize = async ()=>{
+    await sendMessage();
+    setIsLoading(false);
+  }
+
+  useEffect(()=>{
+  handleInitialize();
+  }, [])
 
   const handleScroll = () => {
     if (chatContainerRef.current) {
@@ -57,6 +60,15 @@ const RoleplayChat = ({ character = {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const getHistory = ()=> {
+    const chatHistory = messages.map(msg=>( {
+      role: msg.sender,
+      parts: [{text: msg.text}]
+    }))
+
+    return chatHistory;
+  }
+
   useEffect(() => {
     const container = chatContainerRef.current;
     container?.addEventListener('scroll', handleScroll);
@@ -64,9 +76,8 @@ const RoleplayChat = ({ character = {
   }, []);
 
   const sendMessage = async (e) => {
-    e.preventDefault();
+    e && e.preventDefault();
     if (!newMessage.trim()) return;
-
     // Add user message
     const userMessage = {
       id: messages.length + 1,
@@ -86,7 +97,8 @@ const RoleplayChat = ({ character = {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          inputPrompt: newMessage
+          inputPrompt: newMessage,
+          history: getHistory()
         })
       });
 
@@ -97,7 +109,7 @@ const RoleplayChat = ({ character = {
       // Add AI response
       setMessages(prev => [...prev, {
         id: Math.random(),
-        sender: 'character',
+        sender: 'model',
         text: responseText.replace(/\n/gi, '\n &nbsp;'),
         timestamp: new Date().toISOString(),
         isComplete: true
@@ -107,7 +119,7 @@ const RoleplayChat = ({ character = {
       console.error('Error:', error);
       setMessages(prev => [...prev, {
         id: responseMessageId,
-        sender: 'character',
+        sender: 'model',
         text: "I apologize, but I'm having trouble responding right now. Please try again.",
         timestamp: new Date().toISOString(),
         isComplete: true
@@ -121,6 +133,10 @@ const RoleplayChat = ({ character = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
   };
+
+  if(isLoading){
+    return <></>
+  }
 
   return (
     <div className="h-screen max-h-screen flex flex-col bg-gray-50">
@@ -153,7 +169,7 @@ const RoleplayChat = ({ character = {
               exit="hidden"
               className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} gap-2 items-end`}
             >
-              {message.sender === 'character' && (
+              {message.sender === 'model' && (
                 <img 
                   src={character.avatar} 
                   alt={character.name}
