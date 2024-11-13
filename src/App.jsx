@@ -8,7 +8,8 @@ function App() {
     <Router>
       <Routes>
       <Route path="/" element={<CharacterCard />} />
-      <Route path="/chat" element={<RoleplayChat />} />
+      <Route path="/chat/:id" element={<RoleplayChat />} />
+      <Route path="*" element={<CharacterCard/>}/>
     </Routes>
     </Router>
   )
