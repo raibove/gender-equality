@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-// import { Send, ChevronDown } from 'lucide-react';
+
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 
 const TypingIndicator = () => (
   <div className="flex space-x-2 p-3 bg-gray-100 rounded-2xl rounded-bl-none max-w-[100px]">
@@ -60,66 +63,11 @@ const RoleplayChat = ({ character = {
     return () => container?.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    if (messages.length > 0) {
-      scrollToBottom();
-    }
-  }, [messages]);
-
-  const splitIntoChunks = (text, maxLength = 150) => {
-    const words = text.split(' ');
-    const chunks = [];
-    let currentChunk = '';
-
-    words.forEach(word => {
-      if ((currentChunk + ' ' + word).length <= maxLength) {
-        currentChunk += (currentChunk ? ' ' : '') + word;
-      } else {
-        chunks.push(currentChunk);
-        currentChunk = word;
-      }
-    });
-    
-    if (currentChunk) {
-      chunks.push(currentChunk);
-    }
-    
-    return chunks;
-  };
-
-  const addMessageChunk = async (chunk, messageId, isLastChunk) => {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        setMessages(prev => {
-          const existingMessageIndex = prev.findIndex(m => m.id === messageId);
-          
-          if (existingMessageIndex === -1) {
-            // Add new message
-            return [...prev, {
-              id: messageId,
-              sender: 'character',
-              text: chunk,
-              timestamp: new Date().toISOString(),
-              isComplete: isLastChunk
-            }];
-          } else {
-            // Update existing message
-            return prev.map(m => 
-              m.id === messageId 
-                ? { ...m, text: m.text + ' ' + chunk, isComplete: isLastChunk }
-                : m
-            );
-          }
-        });
-        resolve();
-      }, Math.random() * 500 + 500); // Random delay between 500-1000ms
-    });
-  };
-
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
+    // Add user message
     const userMessage = {
       id: messages.length + 1,
       sender: 'user',
@@ -131,38 +79,42 @@ const RoleplayChat = ({ character = {
     setNewMessage('');
     setIsTyping(true);
 
-    // Simulate character response with a long message
-    const response = "Let me share my thoughts on that. As a teacher, I've encountered many similar situations in my classroom. It's fascinating how different perspectives can contribute to our understanding. I believe we can explore this topic further and discover new insights together. What aspects would you like to discuss in more detail?";
-    
-
-    const resp = await fetch(' http://127.0.0.1:8787', {
-        method:'POST',
+    try {
+      const response = await fetch('http://127.0.0.1:8787', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-            inputPrompt: 'Hi'
+          inputPrompt: newMessage
         })
-    })
-
-    console.log(resp.body)
-
-    setMessages(prev => {
-          return [...prev, {
-            id: messages.length + 2,
-            sender: 'character',
-            text: response,
-            timestamp: new Date().toISOString(),
-            isComplete: true
-          }];
-
       });
-    // const chunks = splitIntoChunks(response);
-    // const responseMessageId = messages.length + 2;
 
-    // Add chunks with delays
-    // for (let i = 0; i < chunks.length; i++) {
-    //   await addMessageChunk(chunks[i], responseMessageId, i === chunks.length - 1);
-    // }
+      if (!response.ok) throw new Error('API request failed');
 
-    setIsTyping(false);
+      const responseText = await response.text();
+
+      // Add AI response
+      setMessages(prev => [...prev, {
+        id: Math.random(),
+        sender: 'character',
+        text: responseText.replace(/\n/gi, '\n &nbsp;'),
+        timestamp: new Date().toISOString(),
+        isComplete: true
+      }]);
+
+    } catch (error) {
+      console.error('Error:', error);
+      setMessages(prev => [...prev, {
+        id: responseMessageId,
+        sender: 'character',
+        text: "I apologize, but I'm having trouble responding right now. Please try again.",
+        timestamp: new Date().toISOString(),
+        isComplete: true
+      }]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const messageVariants = {
@@ -218,7 +170,11 @@ const RoleplayChat = ({ character = {
                 `}
                 whileHover={{ scale: 1.02 }}
               >
-                <p>{message.text}</p>
+                {/* <p>{message.text}</p> */}
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkBreaks]}
+                >{message.text}</ReactMarkdown>
+
                 <p className="text-xs opacity-70 mt-1">
                   {new Date(message.timestamp).toLocaleTimeString([], { 
                     hour: '2-digit', 
