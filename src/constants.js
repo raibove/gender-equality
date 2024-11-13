@@ -40,3 +40,7 @@ export const Characters = [
         scenario: "His Sister is currently working as a designer, and he Witnesses familial pressure on her to marry early and prioritize family over career."
     }
   ];
+
+
+  export const BACKEND_URL = 'https://gender-equality-backend.yikew40375.workers.dev'
+  // 'http://127.0.0.1:8787

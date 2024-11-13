@@ -5,8 +5,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { useParams } from 'react-router-dom';
-import { Characters } from './constants';
-import Bot from './assets/Bot.svg';
+import { BACKEND_URL, Characters } from './constants';
+import Bot from './assets/bot.svg';
 
 const TypingIndicator = () => (
   <div className="flex space-x-2 p-3 bg-gray-100 rounded-2xl rounded-bl-none max-w-[100px]">
@@ -125,7 +125,7 @@ const RoleplayChat = () => {
         .filter(line => line !== null) // Remove any null values (for missing keys)
         .join('\n');
 
-      const response = await fetch('http://127.0.0.1:8787', {
+      const response = await fetch(BACKEND_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
